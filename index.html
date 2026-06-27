@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Учёт ЖКХ</title>
+<style>
+:root{--primary:#2c3e50;--primary-light:#34495e;--accent:#3498db;--success:#27ae60;--warning:#f39c12;--danger:#e74c3c;--bg:#f0f2f5;--card:#fff;--text:#333;--text-light:#666;--border:#e0e0e0;--radius:12px;--shadow:0 2px 8px rgba(0,0,0,.08)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Roboto,Arial,sans-serif;background:linear-gradient(135deg,#e8ecf1 0%,#d5dde5 50%,#c8d6e0 100%);color:var(--text);min-height:100vh}
+.header{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;position:sticky;top:0;z-index:100}
+.header h1{font-size:22px;display:flex;align-items:center;gap:8px}
+.header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+select,button{padding:8px 14px;border:none;border-radius:8px;font-size:14px;cursor:pointer}
+select{background:#fff;color:var(--text);border:1px solid var(--border)}
+button{background:var(--accent);color:#fff;font-weight:500;transition:.2s}
+button:hover{opacity:.85;transform:translateY(-1px)}
+.btn-success{background:var(--success)}
+.btn-warning{background:var(--warning)}
+.btn-danger{background:var(--danger)}
+.btn-outline{background:transparent;border:2px solid #fff;color:#fff}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+.sync-bar{background:#fff;padding:8px 20px;border-radius:0 0 var(--radius) var(--radius);margin:0 auto;max-width:1200px;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-light);box-shadow:var(--shadow)}
+.sync-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.sync-dot.ok{background:var(--success)}
+.sync-dot.err{background:var(--danger)}
+.sync-dot.wait{background:var(--warning);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.total-card{background:linear-gradient(135deg,var(--success),#2ecc71);color:#fff;padding:20px 24px;border-radius:var(--radius);margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;box-shadow:var(--shadow)}
+.total-card .amount{font-size:28px;font-weight:700}
+.objects-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.obj-card{border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);cursor:pointer;transition:.2s;border-left:4px solid var(--accent)}
+.obj-card:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.12)}
+.obj-card.flat{background:linear-gradient(135deg,#b3e0f2,#d4eef8);border-left-color:#2980b9}
+.obj-card.house{background:linear-gradient(135deg,#f9d976,#fce4a8);border-left-color:#e67e22}
+.obj-card.simple{background:linear-gradient(135deg,#d4b3f0,#e8d4f8);border-left-color:#8e44ad}
+.obj-card h3{font-size:16px;margin-bottom:4px}
+.obj-card .subtitle{font-size:12px;color:var(--text-light);margin-bottom:12px}
+.obj-card .sum{font-size:22px;font-weight:700;color:var(--success)}
+.type-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;margin-bottom:8px}
+.type-full{background:#e8f4f8;color:#2980b9}
+.type-house{background:#fef3e2;color:#e67e22}
+.type-simple{background:#f0e8f8;color:#8e44ad}
+.detail{display:none}
+.detail.active{display:block}
+.back-btn{background:var(--accent);color:#fff;border:none;font-size:14px;cursor:pointer;margin-bottom:12px;padding:8px 18px;border-radius:8px;font-weight:600}
+.back-btn:hover{opacity:.85}
+.services-table{width:100%;border-collapse:collapse;background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+.services-table th,.services-table td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--border)}
+.services-table th{background:var(--primary);color:#fff;font-weight:600;font-size:13px}
+.services-table td{font-size:14px}
+.services-table input[type=number]{width:110px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:14px}
+.row-total{font-weight:700;color:var(--success);min-width:100px;text-align:right}
+.row-tariff{color:var(--text-light);font-size:12px}
+.row-volume{color:var(--accent);font-weight:600}
+.row-prev{color:var(--text-light);font-size:13px}
+.row-fixed{color:var(--text-light);font-style:italic}
+.grand-total{background:var(--primary);color:#fff;padding:16px 24px;border-radius:var(--radius);margin-top:16px;display:flex;justify-content:space-between;align-items:center}
+.grand-total .amount{font-size:24px;font-weight:700}
+.modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:200;justify-content:center;align-items:center}
+.modal-overlay.active{display:flex}
+.modal{background:var(--card);border-radius:var(--radius);padding:24px;max-width:900px;width:95%;max-height:85vh;overflow-y:auto;position:relative}
+.modal h2{margin-bottom:16px}
+.modal-close{font-size:24px;cursor:pointer;color:var(--text-light);background:none;border:none;position:sticky;top:0;float:right;z-index:10}
+.modal-close:hover{color:var(--text)}
+.tariff-row{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+.tariff-row input{padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px}
+.tariff-row input[type=number]{width:80px}
+.tariff-row input[type=date]{width:130px}
+.tariffs-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tariff-card{background:#f8f9fa;border-radius:10px;padding:12px;border:1px solid var(--border)}
+.tariff-card-title{font-size:13px;font-weight:700;color:var(--primary);margin-bottom:8px}
+.section-title{font-size:18px;font-weight:600;margin:20px 0 12px;color:var(--primary)}
+.history-table{width:100%;border-collapse:collapse}
+.history-table th,.history-table td{padding:8px 12px;border-bottom:1px solid var(--border);text-align:left}
+.history-table th{background:var(--primary);color:#fff}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--success);color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;z-index:300;animation:fadeIn .3s}
+.toast.err{background:var(--danger)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+/* Auth screen */
+.auth-screen{display:flex;justify-content:center;align-items:center;min-height:100vh;background:var(--bg)}
+.auth-card{background:#fff;border-radius:16px;padding:40px;width:100%;max-width:420px;box-shadow:0 4px 20px rgba(0,0,0,.1);text-align:center}
+.auth-card h1{font-size:28px;margin-bottom:8px;color:var(--primary)}
+.auth-card p{color:var(--text-light);margin-bottom:24px;font-size:14px}
+.auth-card input{width:100%;padding:14px;border:2px solid var(--border);border-radius:10px;font-size:14px;margin-bottom:12px;outline:none;transition:.2s;font-family:monospace}
+.auth-card input:focus{border-color:var(--accent)}
+.auth-card button{width:100%;padding:14px;background:var(--primary);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;transition:.2s}
+.auth-card button:hover{background:var(--accent)}
+.auth-card .icon{font-size:48px;margin-bottom:16px}
+.auth-card .hint{font-size:12px;color:var(--text-light);margin-top:12px}
+.auth-card .error{background:#f8d7da;color:#721c24;padding:10px;border-radius:8px;margin-bottom:16px;font-size:13px}
+</style>
+</head>
+<body>
+
+<div id="authScreen" style="display:none"></div>
+
+<div id="appScreen">
+  <div class="header">
+    <h1>🏠 Учёт ЖКХ</h1>
+    <div class="header-actions">
+      <select id="periodSelect" onchange="changePeriod(this.value)"></select>
+      <button onclick="openTariffs()">💰 Тарифы</button>
+      <button class="btn-outline" onclick="logout()">🔑 Сменить токен</button>
+    </div>
+  </div>
+  <div class="sync-bar">
+    <span class="sync-dot" id="syncDot"></span>
+    <span id="syncText">Загрузка...</span>
+  </div>
+  <div class="container">
+    <div id="dashboard">
+      <div class="total-card">
+        <h3>💰 Общая сумма за <span id="periodLabel"></span></h3>
+        <div class="amount" id="grandTotal">0.00 ₽</div>
+      </div>
+      <div class="objects-grid" id="objectsGrid"></div>
+    </div>
+    <div id="detail" class="detail"></div>
+  </div>
+</div>
+
+<div id="tariffModal" class="modal-overlay" onclick="if(event.target===this)closeTariffs()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeTariffs()">&times;</button>
+    <h2>💰 Управление тарифами</h2>
+    <div id="tariffContent"></div>
+  </div>
+</div>
+
+<div id="historyModal" class="modal-overlay" onclick="if(event.target===this)closeHistory()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeHistory()">&times;</button>
+    <h2 id="historyTitle">📜 История</h2>
+    <div id="historyContent"></div>
+  </div>
+</div>
+
+<script>
+const YD_BASE='https://cloud-api.yandex.net/v1/disk';
+const YD_PATH='/ЖКХ/zhkh_data.json';
+const EMBEDDED_TOKEN='y0__wgBENOq4CcY7b1EIJLl3ogYQQoUnbmgRKQWTJnjVdPscollfBc';
+const MONTHS_SHORT=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+
+function periodLabel(p){const[y,m]=p.split('-');return MONTHS_SHORT[parseInt(m)-1]+' '+y.slice(2)}
+function periodDate(p){const[y,m]=p.split('-');return new Date(parseInt(y),parseInt(m)-1)}
+function addMonths(p,n){const d=periodDate(p);d.setMonth(d.getMonth()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
+function defaultPeriod(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
+
+function getDefaultData(){
+  return {
+    currentPeriod:defaultPeriod(),
+    objects:[
+      {id:'flat263',name:'Квартира 263',subtitle:'ЕЛС 00ЕО463315',type:'full',services:[
+        {id:'water',name:'Симплекс ХВ',type:'counter',tariffKey:'water'},
+        {id:'ingrid',name:'Ингрид',type:'fixed'},
+        {id:'gas',name:'Газ',type:'counter',tariffKey:'gas'},
+        {id:'elec',name:'Янтарьэнерго',type:'counter',tariffKey:'elec'},
+        {id:'kaprem',name:'Капремонт',type:'fixed',tariffKey:'kapremont_263'},
+        {id:'domofon',name:'СБ видео (домофон)',type:'fixed'},
+        {id:'garbage',name:'Мусор',type:'fixed'},
+        {id:'drain',name:'Водоотведение',type:'derived',dependsOn:'water',tariffKey:'drain'}
+      ]},
+      {id:'flat10',name:'Квартира 10',subtitle:'ЕЛС 70ЕО463037',type:'full',services:[
+        {id:'water',name:'Симплекс ХВ',type:'counter',tariffKey:'water'},
+        {id:'ingrid',name:'Ингрид',type:'fixed'},
+        {id:'gas',name:'Газ',type:'counter',tariffKey:'gas'},
+        {id:'elec',name:'Янтарьэнерго',type:'counter',tariffKey:'elec'},
+        {id:'kaprem',name:'Капремонт',type:'fixed',tariffKey:'kapremont_10'},
+        {id:'tv',name:'ТВ и интернет',type:'fixed'},
+        {id:'domofon',name:'СБ видео (домофон)',type:'fixed'},
+        {id:'drain',name:'Водоотведение',type:'derived',dependsOn:'water',tariffKey:'drain'},
+        {id:'garbage',name:'Мусор',type:'fixed'}
+      ]},
+      {id:'shipilovskaya',name:'Шипиловская',subtitle:'ЕЛС 30ЕА246861',type:'simple',services:[
+        {id:'epd',name:'ЕПД',type:'simple'},
+        {id:'elec',name:'Электричество',type:'fixed'}
+      ]},
+      {id:'yasenevaya',name:'Ясеневая',subtitle:'ЕЛС 00НУ575480',type:'simple',services:[
+        {id:'epd',name:'ЕПД',type:'simple'},
+        {id:'elec',name:'Электричество',type:'fixed'}
+      ]},
+      {id:'house19',name:'Дом 19',subtitle:'ЕЛС 60PE405091',type:'house',services:[
+        {id:'gas',name:'Газ',type:'counter',tariffKey:'gas'},
+        {id:'elec',name:'Электричество',type:'counter',tariffKey:'elec'},
+        {id:'garbage',name:'Мусор',type:'fixed'}
+      ]},
+      {id:'house21',name:'Дом 21',subtitle:'ЕЛС 80РН288681',type:'house',services:[
+        {id:'gas',name:'Газ',type:'counter',tariffKey:'gas'},
+        {id:'elec',name:'Электричество',type:'counter',tariffKey:'elec'},
+        {id:'garbage',name:'Мусор',type:'fixed'}
+      ]}
+    ],
+    tariffs:{
+      gas:[{value:9.5,dateFrom:'2025-07-01'},{value:9.62479,dateFrom:'2026-01-01'}],
+      elec:[{value:6.2,dateFrom:'2025-07-01'},{value:6.3,dateFrom:'2026-01-01'}],
+      water:[{value:46.65,dateFrom:'2025-07-01'},{value:47.42,dateFrom:'2026-01-01'}],
+      drain:[{value:28.79,dateFrom:'2025-07-01'},{value:29.27,dateFrom:'2026-01-01'}],
+      garbage_flat:[{value:136.96,dateFrom:'2024-07-01'},{value:141.8,dateFrom:'2025-07-01'}],
+      garbage_house:[{value:212.7,dateFrom:'2025-07-01'}],
+      kapremont_263:[{value:399.96,dateFrom:'2025-07-01'}],
+      kapremont_10:[{value:447.48,dateFrom:'2025-07-01'}]
+    },
+    readings:{}
+  };
+}
+
+let data=null, token=null, currentView='dashboard', currentObjectId=null;
+
+// ===== Yandex Disk API =====
+async function ydRequest(method,path,params,body){
+  const url=new URL(YD_BASE+path);
+  if(params) Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));
+  const opts={method,headers:{'Authorization':'OAuth '+token}};
+  if(body){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(body)}
+  const r=await fetch(url,opts);
+  if(!r.ok) throw new Error('YD '+r.status+': '+await r.text());
+  return r.json();
+}
+
+async function ydDownload(){
+  const info=await ydRequest('GET','/resources/download',{path:YD_PATH});
+  const r=await fetch(info.href);
+  return r.json();
+}
+
+async function ydUpload(obj){
+  const info=await ydRequest('GET','/resources/upload',{path:YD_PATH,overwrite:'true'});
+  await fetch(info.href,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)});
+}
+
+// ===== Token =====
+function logout(){location.reload()}
+
+// ===== Data =====
+async function loadData(){
+  try{
+    setSync('wait','Загрузка с Яндекс Диска...');
+    data=await ydDownload();
+    if(data&&data.objects&&data.objects.length>0){
+      setSync('ok','Синхронизировано');
+    }else{
+      data=getDefaultData();
+      setSync('ok','Новые данные (пустой файл на Диске)');
+    }
+  }catch(e){
+    console.error('Load error:',e);
+    data=getDefaultData();
+    setSync('err','Ошибка загрузки. Данные НЕ сохранены на Диск.');
+  }
+  render();
+}
+
+async function saveData(){
+  if(!data||!data.objects||!data.objects.length){return}
+  try{
+    setSync('wait','Сохранение...');
+    // Бэкап перед сохранением
+    try{
+      const bk=new Date().toISOString().slice(0,16).replace(/[T:]/g,'-');
+      const info=await ydRequest('GET','/resources/upload',{path:'/ЖКХ/backups/zhkh_'+bk+'.json',overwrite:'true'});
+      await fetch(info.href,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    }catch(bkErr){console.log('Backup skipped:',bkErr)}
+    await ydUpload(data);
+    setSync('ok','Сохранено на Диск');
+  }catch(e){
+    console.error('Save error:',e);
+    setSync('err','Ошибка сохранения: '+e.message);
+  }
+}
+  render();
+}
+
+async function saveData(){
+  try{
+    setSync('wait','Сохранение...');
+    await ydUpload(data);
+    setSync('ok','Сохранено на Диск');
+  }catch(e){
+    console.error(e);
+    setSync('err','Ошибка: '+e.message);
+  }
+}
+
+function setSync(s,t){document.getElementById('syncDot').className='sync-dot '+s;document.getElementById('syncText').textContent=t}
+
+// ===== Calc =====
+function getTariff(key,period){
+  const list=data.tariffs[key];if(!list||!list.length)return 0;
+  const pd=periodDate(period);let best=null;
+  for(const t of list){const td=new Date(t.dateFrom);if(td<=pd){if(!best||td>new Date(best.dateFrom))best=t}}
+  return best?best.value:0;
+}
+function getR(oid,sid,p){return(data.readings[oid]&&data.readings[oid][sid]&&data.readings[oid][sid][p])||0}
+function setR(oid,sid,p,v){if(!data.readings[oid])data.readings[oid]={};if(!data.readings[oid][sid])data.readings[oid][sid]={};data.readings[oid][sid][p]=v}
+
+function calcObject(obj,period){
+  const prev=addMonths(period,-1);let total=0;const items=[];
+  for(const svc of obj.services){
+    let amount=0,volume=null,tariffVal=0,prevReading=null,curReading=null;
+    if(svc.type==='counter'){
+      curReading=getR(obj.id,svc.id,period);prevReading=getR(obj.id,svc.id,prev);
+      volume=Math.max(0,curReading-prevReading);tariffVal=getTariff(svc.tariffKey,period);amount=volume*tariffVal;
+    }else if(svc.type==='derived'){
+      const dep=obj.services.find(s=>s.id===svc.dependsOn);
+      if(dep){const dc=getR(obj.id,dep.id,period),dp=getR(obj.id,dep.id,prev);volume=Math.max(0,dc-dp)}
+      tariffVal=getTariff(svc.tariffKey,period);amount=(volume||0)*tariffVal;
+    }else{amount=getR(obj.id,svc.id,period)}
+    total+=amount;items.push({svc,volume,prevReading,curReading,tariffVal,amount});
+  }
+  return{total,items};
+}
+
+// ===== UI =====
+function changePeriod(p){data.currentPeriod=p;saveData();render()}
+function render(){if(currentView==='dashboard')renderDashboard();else renderDetail()}
+
+function renderDashboard(){
+  document.getElementById('detail').className='detail';
+  document.getElementById('dashboard').style.display='';
+  const period=data.currentPeriod;
+  document.getElementById('periodLabel').textContent=periodLabel(period);
+  const sel=document.getElementById('periodSelect');
+  const periods=[];for(let i=-12;i<=6;i++)periods.push(addMonths(defaultPeriod(),i));
+  sel.innerHTML=periods.map(p=>`<option value="${p}" ${p===period?'selected':''}>${periodLabel(p)}</option>`).join('');
+  let gt=0;const grid=document.getElementById('objectsGrid');let html='';
+  for(const obj of data.objects){
+    const c=calcObject(obj,period);gt+=c.total;
+    const tc=obj.type==='full'?'type-full':obj.type==='house'?'type-house':'type-simple';
+    const tn=obj.type==='full'?'Квартира':obj.type==='house'?'Дом':'ЕПД';
+    const cc=obj.type==='full'?'flat':obj.type==='house'?'house':'simple';
+    html+=`<div class="obj-card ${cc}" onclick="openObject('${obj.id}')"><span class="type-badge ${tc}">${tn}</span><h3>${obj.name}</h3><div class="subtitle">${obj.subtitle}</div><div class="sum">${c.total.toFixed(2)} ₽</div></div>`;
+  }
+  grid.innerHTML=html;document.getElementById('grandTotal').textContent=gt.toFixed(2)+' ₽';
+}
+
+function openObject(id){currentView='detail';currentObjectId=id;document.getElementById('dashboard').style.display='none';document.getElementById('detail').className='detail active';renderDetail()}
+function backToDashboard(){currentView='dashboard';currentObjectId=null;render()}
+
+function renderDetail(){
+  const obj=data.objects.find(o=>o.id===currentObjectId);if(!obj)return;
+  const period=data.currentPeriod,calc=calcObject(obj,period);
+  const gKey=obj.type==='house'?'garbage_house':'garbage_flat';
+  let h=`<button class="back-btn" onclick="backToDashboard()">← Назад</button>`;
+  h+=`<div class="detail-header"><h2>${obj.name}</h2><div class="sub">${obj.subtitle} · ${periodLabel(period)}</div></div>`;
+  h+=`<table class="services-table"><thead><tr><th>Услуга</th><th>Пред.</th><th>Тек.</th><th>Объём</th><th>Тариф</th><th style="text-align:right">Сумма</th></tr></thead><tbody>`;
+  for(const it of calc.items){
+    const s=it.svc;h+='<tr><td><strong>'+s.name+'</strong></td>';
+    if(s.type==='counter')h+=`<td class="row-prev">${it.prevReading||'—'}</td><td><input type="number" step="0.01" value="${it.curReading||''}" onchange="onC('${obj.id}','${s.id}',this.value)"></td><td class="row-volume">${it.volume||0}</td><td class="row-tariff">${it.tariffVal.toFixed(2)} ₽/ед</td>`;
+    else if(s.type==='derived')h+=`<td class="row-prev">—</td><td>—</td><td class="row-volume">${it.volume||0} м³</td><td class="row-tariff">${it.tariffVal.toFixed(2)} ₽/м³</td>`;
+    else if(s.id==='garbage'){const tv=getTariff(gKey,period);h+=`<td class="row-prev">—</td><td><input type="number" step="0.01" value="${it.amount||''}" onchange="onF('${obj.id}','${s.id}',this.value)" placeholder="сумма"></td><td class="row-volume">—</td><td class="row-tariff">${tv.toFixed(2)} ₽/мес</td>`}
+    else if(s.tariffKey){const tv=getTariff(s.tariffKey,period);h+=`<td class="row-prev">—</td><td><input type="number" step="0.01" value="${it.amount||''}" onchange="onF('${obj.id}','${s.id}',this.value)" placeholder="сумма"></td><td class="row-volume">—</td><td class="row-tariff">${tv.toFixed(2)} ₽/мес</td>`}
+    else h+=`<td class="row-prev">—</td><td><input type="number" step="0.01" value="${it.amount||''}" onchange="onF('${obj.id}','${s.id}',this.value)" placeholder="сумма"></td><td class="row-volume">—</td><td class="row-fixed">фикс.</td>`;
+    h+=`<td class="row-total">${it.amount.toFixed(2)} ₽</td></tr>`;
+  }
+  h+=`</tbody></table>`;
+  h+=`<div class="grand-total"><span>💰 ИТОГО:</span><span class="amount">${calc.total.toFixed(2)} ₽</span></div>`;
+  h+=`<div style="margin-top:16px"><button class="btn-success" onclick="showHistory('${obj.id}')">📜 История</button></div>`;
+  document.getElementById('detail').innerHTML=h;
+}
+
+function onC(oid,sid,val){setR(oid,sid,data.currentPeriod,parseFloat(val)||0);saveData();renderDetail()}
+function onF(oid,sid,val){setR(oid,sid,data.currentPeriod,parseFloat(val)||0);saveData();renderDetail()}
+
+function showHistory(oid){
+  const obj=data.objects.find(o=>o.id===oid);if(!obj)return;
+  document.getElementById('historyTitle').textContent='📜 '+obj.name;
+  let h='<table class="history-table"><thead><tr><th>Период</th><th>Сумма</th></tr></thead><tbody>';
+  let g=0;
+  for(let i=-12;i<=0;i++){const p=addMonths(data.currentPeriod,i);const c=calcObject(obj,p);
+    if(c.total>0||p===data.currentPeriod){g+=c.total;h+=`<tr><td>${periodLabel(p)}</td><td>${c.total.toFixed(2)} ₽</td></tr>`}}
+  h+=`<tr style="font-weight:700;background:#f0f0f0"><td>ИТОГО</td><td>${g.toFixed(2)} ₽</td></tr></tbody></table>`;
+  document.getElementById('historyContent').innerHTML=h;
+  document.getElementById('historyModal').className='modal-overlay active';
+}
+function closeHistory(){document.getElementById('historyModal').className='modal-overlay'}
+
+function openTariffs(){
+  const keys={gas:'Газ (м³)',elec:'Электричество (кВтч)',water:'ХВ (м³)',drain:'ВО (м³)',garbage_flat:'Мусор — квартира',garbage_house:'Мусор — дом',kapremont_263:'Капремонт — кв.263',kapremont_10:'Капремонт — кв.10'};
+  let h='<div class="tariffs-grid">';
+  for(const[k,l]of Object.entries(keys)){
+    const list=data.tariffs[k]||[];
+    h+=`<div class="tariff-card"><div class="tariff-card-title">${l}</div>`;
+    for(let i=0;i<list.length;i++){
+      h+=`<div class="tariff-row"><input type="number" step="0.01" value="${list[i].value}" onchange="updT('${k}',${i},'value',this.value)" placeholder="сумма"><input type="date" value="${list[i].dateFrom}" onchange="updT('${k}',${i},'dateFrom',this.value)"><button class="btn-danger" onclick="rmT('${k}',${i})" style="padding:4px 8px">✕</button></div>`;
+    }
+    h+=`<button onclick="addT('${k}')" style="margin-top:8px;width:100%;font-size:12px;padding:6px">➕</button></div>`;
+  }
+  h+='</div>';
+  document.getElementById('tariffContent').innerHTML=h;
+  document.getElementById('tariffModal').className='modal-overlay active';
+}
+function closeTariffs(){document.getElementById('tariffModal').className='modal-overlay'}
+function updT(k,i,f,v){if(f==='value')data.tariffs[k][i].value=parseFloat(v)||0;else data.tariffs[k][i].dateFrom=v;data.tariffs[k].sort((a,b)=>a.dateFrom.localeCompare(b.dateFrom));saveData();openTariffs()}
+function rmT(k,i){data.tariffs[k].splice(i,1);saveData();openTariffs()}
+function addT(k){if(!data.tariffs[k])data.tariffs[k]=[];const last=data.tariffs[k][data.tariffs[k].length-1];data.tariffs[k].push({value:last?last.value:0,dateFrom:data.currentPeriod+'-01'});saveData();openTariffs()}
+
+function toast(msg,err){const t=document.createElement('div');t.className='toast'+(err?' err':'');t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3000)}
+
+// ===== Init =====
+async function initApp(){await loadData()}
+
+token=EMBEDDED_TOKEN;
+document.getElementById('appScreen').style.display='';
+initApp();
+</script>
+</body>
+</html>
