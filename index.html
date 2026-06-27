@@ -258,7 +258,6 @@ async function saveData(){
   if(!data||!data.objects||!data.objects.length){return}
   try{
     setSync('wait','Сохранение...');
-    // Бэкап перед сохранением
     try{
       const bk=new Date().toISOString().slice(0,16).replace(/[T:]/g,'-');
       const info=await ydRequest('GET','/resources/upload',{path:'/ЖКХ/backups/zhkh_'+bk+'.json',overwrite:'true'});
@@ -270,6 +269,7 @@ async function saveData(){
     console.error('Save error:',e);
     setSync('err','Ошибка сохранения: '+e.message);
   }
+}
 }
   render();
 }
